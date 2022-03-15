@@ -11,10 +11,14 @@ from taskGenerator import create_task
 
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
+#videourl = "https://hackernoon.com/i-tried-hacking-a-bluetooth-speaker-heres-what-happened-next"
+#audiowithtext = "https://hackernoon.com/the-fastest-way-to-invoke-a-httprest-url-from-an-aws-lambda"
+#onlytext = "https://hackernoon.com/an-intro-to-ens-ethereum-name-services-and-why-you-should-get-one"
+
 uid = str(uuid.uuid4())
 payload = {
     "urlId": uid,
-    "inputLink": "https://hackernoon.com/introducing-a-simple-npm-module-with-email-templates"
+    "inputLink": "https://hackernoon.com/6-vertical-marketing-best-practices-for-the-tech-industry"
 }
 
 response = requests.post('http://127.0.0.1:8000',data=json.dumps(payload), headers={'Content-Type':'application/json'})
@@ -38,40 +42,80 @@ try:
             driver.get(url)
             content = driver.find_elements_by_tag_name('p')   #scrapping content
             content2 = driver.find_elements_by_class_name('paragraph')
-            if driver.find_element_by_id('wave-loader'): # wave-loader for audio content page
-                try:
-                    text=''
-                    for i in range (1,int(len(content))+1):
-                        try:
-                            text += driver.find_element_by_xpath(f'//*[@id="__next"]/div/main/div/div[5]/div/div/div/p[{i}]').text  #//*[@id="__next"]/div/main/div/div[5]/div/div/div/p
-                            #text.append(t)
-                        except:
-                            pass
-                    for i in range (1,int(len(content2))+1):
-                        try:
-                            text += driver.find_element_by_xpath(f"//*[contains(@class,'paragraph')][{i}]").text  #//*[@id="__next"]/div/main/div/div[5]/div/div/div/p
-                            #text.append(t)
-                        except:
-                            pass
-                    text.split('\n')
-                    text = [line for line in text.split('\n') if line.strip() != '']
-                    text_summerized = " ".join(text)
+            try:
+                adiotext = driver.find_element_by_id('wave-loader')
+                if adiotext.is_displayed(): # wave-loader for audio content page
+                    try:
+                        text=''
+                        for i in range (1,int(len(content))+1):
+                            try:
+                                text += driver.find_element_by_xpath(f'//*[@id="__next"]/div/main/div/div[5]/div/div/div/p[{i}]').text  #//*[@id="__next"]/div/main/div/div[5]/div/div/div/p
+                                #text.append(t)                        
+                            except:
+                                pass
+                        for i in range (1,int(len(content2))+1):
+                            try:
+                                text += driver.find_element_by_xpath(f"//*[contains(@class,'paragraph')][{i}]").text  #//*[@id="__next"]/div/main/div/div[5]/div/div/div/p
+                                #text.append(t)
+                            except:
+                                pass
+                        text.split('\n')
+                        text = [line for line in text.split('\n') if line.strip() != '']
+                        text_summerized = " ".join(text)
+                        
+                        fName = str(uuid.uuid4())    
+                        client = storage.Client()
+                        bucket = client.get_bucket('mydemo-bucket-ts')
+                        new_blob = bucket.blob(f'remote/hackernoon/{fName}.txt')
+                        new_blob.upload_from_string(text_summerized)
+                        print('Upload successfully')
+                        #### create task here ######
+                        create_task(uid=payload['urlId'],url=url,payload=text_summerized)
+                        ############################
+                        print('summerized')
+                        
+                    except Exception:
+                        print('p tag loop not working..')
+            except Exception:
+                text=''
+                for i in range (1,int(len(content))+1):
+                    try:
+                        text += driver.find_element_by_xpath(f'//*[@id="__next"]/div/main/div/div[4]/div/div/div/p[{i}]').text  #//*[@id="__next"]/div/main/div/div[5]/div/div/div/p
+                        #text.append(t)                        
+                    except:
+                        pass
+                for i in range (1,int(len(content2))+1):
+                    try:
+                        text += driver.find_element_by_xpath(f"//*[contains(@class,'paragraph')][{i}]").text  #//*[@id="__next"]/div/main/div/div[5]/div/div/div/p
+                        #text.append(t)
+                    except:
+                        pass
+                text.split('\n')
+                text = [line for line in text.split('\n') if line.strip() != '']
+                text_summerized = " ".join(text)
+                
+                fName = str(uuid.uuid4())    
+                client = storage.Client()
+                bucket = client.get_bucket('mydemo-bucket-ts')
+                new_blob = bucket.blob(f'remote/hackernoon/{fName}.txt')
+                new_blob.upload_from_string(text_summerized)
+                print('Upload successfully')
+                #### create task here ######
+                create_task(uid=payload['urlId'],url=url,payload=text_summerized)
+                ############################
+                print('summerized')
                     
-                    fName = str(uuid.uuid4())    
-                    client = storage.Client()
-                    bucket = client.get_bucket('mydemo-bucket-ts')
-                    new_blob = bucket.blob(f'remote/hackernoon/{fName}.txt')
-                    new_blob.upload_from_string(text_summerized)
-                    print('Upload successfully')
-                    #### create task here ######
-                    create_task(uid=payload['urlId'],url=url,payload=text_summerized)
-                    ############################
-                    print('summerized')
-                    
-                except Exception:
-                    print('p tag loop not working..')
-        else:   #video content page there is no more text content
-            print("This is Video file there is no more text content to read...")
+            #video content page there is no more text content
+            try:
+                vdeoonly = driver.find_element_by_class_name('html5-video-container')
+                if vdeoonly.is_displayed():
+                    print("This is Video file there is no more text content to read...")
+            except Exception:   
+                pass
+
+                
+                
+                
         driver.quit() 
 except Exception as e:
     print(e)        
@@ -83,31 +127,3 @@ except Exception as e:
 
 
 
-                             
-'''            try:
-                videoFile = driver.find_element_by_xpath('//*[@id="__next"]/div/main/div/div[4]/div/div/div/div/div')
-                if videoFile:
-                    print('This is Video file there is no more text content to read...')
-            except Exception:
-                print('video not available')
-                pass
-            try:
-                audioText = driver.find_element_by_id('wave-loader') # //*[@id="storyAdioPlayer"]
-                if audioText:
-                    #print(url.split('.com/'))
-                    driver.get(url)
-                    content = driver.find_elements_by_tag_name('p')   #scrapping content
-                    print('number p elements there :',content)
-                    text = ""
-                    try:
-                        p = driver.find_elements_by_xpath('//*[@id="__next"]/div/main/div/div[5]/div/div/div/p')
-                        if p:
-                            for i in range(len(p)):
-                                text += driver.find_element_by_xpath(f'//*[@id="__next"]/div/main/div/div[5]/div/div/div/p[{i}]').text+ " "
-                            print(text)
-                    except Exception:
-                        print('check url, path, p code')
-                    driver.quit()
-            except Exception as e:
-                print('Something Wrong in your element path ',e)    
-'''
