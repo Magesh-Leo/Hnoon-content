@@ -1,15 +1,13 @@
-from fastapi import FastAPI
-from pydantic import BaseModel, HttpUrl
-from typing import Optional
+from fastapi import Request, FastAPI
+from app.scrapData import sentUrl
 
-class attributes(BaseModel):
-    urlId : str
-    inputLink : HttpUrl
-
-
-
-app = FastAPI()
+app=FastAPI()
 
 @app.post("/")
-def create_item(a: attributes):
-    return {'message':{'attributes':{'urlId':a.urlId,'inputLink':a.inputLink}}}
+async def get_body(request: Request):
+    req_info = await request.json()
+    uid = req_info["message"]["attributes"]["urlId"]
+    url = req_info["message"]['attributes']['inputLink']
+    resp_info = sentUrl(uid=uid,url=url)
+    return {"Response":resp_info}
+    
